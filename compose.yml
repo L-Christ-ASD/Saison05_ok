@@ -3,54 +3,94 @@ services:
   front:
     image: nginx:alpine
     ports:
-      - 8334:80
+      - 8000:80
     volumes:
       - ./front:/usr/share/nginx/html:ro
     networks:
       - front-network
 
-  wordpress:
-    image: wordpress
-    restart: always
+  back:
+    image: directus/directus
     ports:
-      - 8080:80
-    environment:
-      WORDPRESS_DB_HOST: db
-      WORDPRESS_DB_USER: user
-      WORDPRESS_DB_PASSWORD: pwd
-      WORDPRESS_DB_NAME: mydb
+      - 8055:8055
+    # J'ai besoin de variables pour faire toutner mon Directus.
+    # Ces variables représentent des informations sensibles
+    # (À NE PAS RENDRE PUBLIQUES !).
+    # J'utilise les variables d'environnement (`.env`).
+    # Directus se seret de toutes les variables définies,
+    # je lui donne tout le fichier `.env`
+    env_file:
+      - .env
+      - directus.env
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
-      - db-network
       - front-network
+      - db-network
+    # healthcheck:
+    #   test: "wget --no-verbose --tries=1 --spider http://localhost:8055 || exit 1"
+    #   interval: 5s
+    #   timeout: 5s
+    #   retries: 12
+    #   start_period: 10s
 
   db:
-    image: mysql:8.0
-    restart: always
+    image: postgres:17
+    # Même problématique (infois sensibles)…
+    # Par contre, je n'ai besoin que de quelques variables,
+    # je vais vais les « extrapoler » de mon fichier `.env`
     environment:
-      MYSQL_DATABASE: mydb
-      MYSQL_USER: user
-      MYSQL_PASSWORD: pwd
-      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - db_data:/var/lib/mysql # Utilisation du volume nommé
+      - db-data:/var/lib/postgresql/data
     networks:
       - db-network
+    healthcheck:
+      # On veut tester si le service est « ready »
+      # ET que l'utilisateur peut faire une requête à la BDD
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DATABASE} && psql -U ${DB_USER} -d ${DB_DATABASE} -c 'SELECT 1;'"]
+      interval: 10s # fréquence de vérification
+      timeout: 5s # temps après lequel on considère que le test échoue
+      retries: 5 # nombre maximum de tests à passer
+      # start_period: 30s # délai avant le premier test
 
   adminer:
     image: adminer
     restart: always
     ports:
-      - 8000:8080
+      - 8080:8080
     environment:
       ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha-dark
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - db-network
 
+  reverseproxy:
+    image: nginx
+    ports:
+      - 5000:80
+    volumes:
+      - ./nginx/local.conf:/etc/nginx/nginx.conf
+    depends_on:
+      back:
+      #   # j'attends que le back soit en bonne santé
+      #   condition: service_healthy
+        condition: service_started
+      front:
+        # j'attends que le front soit démarré
+        condition: service_started
+    networks:
+      - front-network
+    
+
 volumes:
-  db_data: # Déclaration du volume nommé
+  db-data:
 
 networks:
   db-network:

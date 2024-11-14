@@ -18,3 +18,9 @@ Environnement de développement sur mesure :
 - « Ré-ouvrir dans le conteneur »
 - Ouvrir un terminal (ZSH)
 - Utiliser Docker
+
+
+## Application
+
+- Lancer l'application : `docker compose up -d`
+- Stopper l'application : `docker compose down`

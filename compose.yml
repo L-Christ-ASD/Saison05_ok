@@ -1,0 +1,49 @@
+services:
+  front:
+    image: node:22-alpine
+    ports:
+      - 5173:5173
+    working_dir: /app
+    volumes:
+      - ./front:/app
+    command: sh -c "npm install && npm run dev"
+
+  back:
+    image: directus/directus
+    ports:
+      - 8055:8055
+    environment:
+      ADMIN_EMAIL: admin@enloused.com
+      ADMIN_PASSWORD: secr3t
+      # Infos BDD
+      DB_CLIENT: pg
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_DATABASE: enloused
+      DB_USER: user
+      DB_PASSWORD: password
+
+      SECRET: 753cf590923fb30bbbec108f07394a6ddf81d9635da210086ebdffac184261f7
+      PUBLIC_URL: http://localhost:8055
+    depends_on:
+      - db
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: enloused
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./data/dump.sql:/docker-entrypoint-initdb.d/init.sql
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha-dark
+    depends_on:
+      - db

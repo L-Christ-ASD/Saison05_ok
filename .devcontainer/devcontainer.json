@@ -23,7 +23,7 @@
 	"forwardPorts": [3000, 5173, 8055, 8080],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "docker compose up -d",
+	"postCreateCommand": "cd /workspaces/Saison05_ok/front && npm install pnpm --global && pnpm install && cd /workspaces/Saison05_ok && docker compose up -d",
 
 	// Configure tool-specific properties.
 	"customizations": {

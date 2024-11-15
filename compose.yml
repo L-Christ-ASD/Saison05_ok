@@ -14,17 +14,8 @@ services:
     image: directus/directus
     ports:
       - 8055:8055
-    environment:
-      ADMIN_EMAIL: admin@enloused.com
-      ADMIN_PASSWORD: secr3t
-      DB_CLIENT: pg
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_DATABASE: enloused
-      DB_USER: user
-      DB_PASSWORD: password
-      SECRET: 753cf590923fb30bbbec108f07394a6ddf81d9635da210086ebdffac184261f7
-      PUBLIC_URL: http://localhost:8055
+    env_file:
+      - .env
         
     depends_on:
       - db
@@ -36,9 +27,9 @@ services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_DB: enloused #extrapolation
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DB_DATABASE} #extrapolation
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ./data/dump.sql:/docker-entrypoint-initdb.d/init.sql # à l'initialisation, je declenche le init.sql
       - db-data:/var/lib/postgresql/data
